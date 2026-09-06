@@ -1,0 +1,2039 @@
+{
+  "name": "digital-banking-automation.",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "INBOX"
+          ],
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "id": "c7c2bf4a-f148-496f-b652-c1e95f96d4f0",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [
+        -3760,
+        560
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qMHvh8uISpKDqedd",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{$json.id}}",
+        "simple": false,
+        "options": {}
+      },
+      "id": "faf33a38-64c2-446c-9ebc-bd3137211a5e",
+      "name": "Get Gmail Message",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -3536,
+        560
+      ],
+      "webhookId": "107fbe83-de8d-44b2-a7e0-34e4e2d6e9b9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qMHvh8uISpKDqedd",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "customers",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "condition": "eq",
+              "keyValue": "={{$json.customer_email}}"
+            }
+          ]
+        }
+      },
+      "id": "f9cedd05-25a0-4ea3-ba5d-036a8133daba",
+      "name": "Find Customer",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -3088,
+        560
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$('Normalize Email').first().json; const r=$json; const t=(i.subject+'\\n'+i.body).toLowerCase(); let intent='GENERAL_SUPPORT'; if(/fraud|unauthori[sz]ed|scam|stolen|suspicious/.test(t))intent='FRAUD'; else if(/dispute|chargeback|charge back/.test(t))intent='DISPUTE'; else if(/transfer|send money|beneficiary/.test(t))intent='TRANSFER'; else if(/standing order|recurring|scheduled payment/.test(t))intent='STANDING_ORDER'; else if(/close account|account closure/.test(t))intent='ACCOUNT_CLOSURE'; else if(/open account|new account/.test(t))intent='ACCOUNT_OPENING'; else if(/statement|transaction history/.test(t))intent='STATEMENT'; else if(/joint|guardian|holder|update account|change details/.test(t))intent='ACCOUNT_UPDATE'; return [{json:{...i,customer:r,customer_exists:!!r?.id,intent,confidence:0.85}}];"
+      },
+      "id": "6bab4815-88cb-4537-9edc-b9fe12476729",
+      "name": "Classify Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2864,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "ACCOUNT_OPENING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ACCOUNT_OPENING"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "ACCOUNT_UPDATE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ACCOUNT_UPDATE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "TRANSFER",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TRANSFER"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "STANDING_ORDER",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "STANDING_ORDER"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "FRAUD",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "FRAUD"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "DISPUTE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DISPUTE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "ACCOUNT_CLOSURE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ACCOUNT_CLOSURE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "STATEMENT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "STATEMENT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.intent}}",
+                    "rightValue": "GENERAL_SUPPORT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "GENERAL_SUPPORT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "93a28f65-50cd-478d-bee7-ddbeae626d0a",
+      "name": "Route Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -2640,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "customers",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{$json.customer_id}}"
+            }
+          ]
+        }
+      },
+      "id": "a8d25b3a-c474-4cd8-8156-d8ecff1d8967",
+      "name": "Get Customer",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1520,
+        80
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "account_holders",
+        "limit": 100,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "account_id",
+              "condition": "eq",
+              "keyValue": "={{$json.account_id}}"
+            }
+          ]
+        }
+      },
+      "id": "503a5283-dd03-42da-8031-7322d82dae18",
+      "name": "Get Account Holders",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1296,
+        80
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "accounts",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{$json.account_id}}"
+            }
+          ]
+        }
+      },
+      "id": "54caaefb-adf3-4212-85fc-7e2fc777a481",
+      "name": "Get Account",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        80
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const a=$json; return [{json:{...a,decision:'POLICY_CHECK_REQUIRED',requires_human_approval:true,reason:'Account holder changes, joint closure, guardian/minor conversion and authority-model changes require explicit policy evaluation.'}}];"
+      },
+      "id": "940b5cfc-dd52-40d9-bbf2-36ebf22e62ff",
+      "name": "Evaluate Authority",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -848,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j=$json; if(!j.source_account_id||!j.destination_account_id||!j.amount||!j.idempotency_key) throw new Error('source_account_id, destination_account_id, amount and idempotency_key are required'); return [{json:j}];"
+      },
+      "id": "21a3feb7-ffac-41c2-ab63-facf705dcad3",
+      "name": "Validate Transfer Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1296,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL + '/rest/v1/rpc/execute_atomic_transfer'}}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "a8fba73a-2384-4886-af26-045762d236f3",
+      "name": "Call Atomic Transfer RPC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "notifications",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{$json.customer_id}}"
+            },
+            {
+              "fieldId": "channel",
+              "fieldValue": "GMAIL"
+            },
+            {
+              "fieldId": "recipient_address",
+              "fieldValue": "={{$json.customer_email}}"
+            },
+            {
+              "fieldId": "subject",
+              "fieldValue": "Transfer processed"
+            },
+            {
+              "fieldId": "body",
+              "fieldValue": "Your transfer request has been processed. Reference: {{$json.transfer_id || 'see transaction history'}}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "PENDING"
+            }
+          ]
+        }
+      },
+      "id": "4363bd93-54c8-48e6-8cc4-dde6e051e7bb",
+      "name": "Create Notification",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -848,
+        272
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "standing_orders",
+        "limit": 100,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "ACTIVE"
+            },
+            {
+              "keyName": "next_execution_at",
+              "condition": "lt",
+              "keyValue": "={{$now.toISO()}}"
+            }
+          ]
+        }
+      },
+      "id": "61ef3a71-dc5b-49af-b1e6-0c169600c86b",
+      "name": "Find Due Standing Orders",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1744,
+        464
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c769b397-324b-486e-b514-ac23436ab522",
+      "name": "Loop Orders",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1520,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const o=$json; return [{json:{...o,idempotency_key:`standing-order-${o.id}-${new Date().toISOString().slice(0,10)}`}}];"
+      },
+      "id": "d2934f87-b2d8-42f1-92ca-0d2c4279621f",
+      "name": "Prepare Execution",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1296,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "REPLACE_WITH_WF03_ID",
+        "mode": "each",
+        "options": {}
+      },
+      "id": "8a930abd-e59e-4936-a7ed-7865767bb73b",
+      "name": "Execute Transfer Workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "standing_order_executions",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "standing_order_id",
+              "fieldValue": "={{$json.id}}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "SUCCESS"
+            },
+            {
+              "fieldId": "executed_at",
+              "fieldValue": "={{$now.toISO()}}"
+            }
+          ]
+        }
+      },
+      "id": "c9d135d9-49b4-48d6-aae5-163288f4eb5b",
+      "name": "Record Execution",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -848,
+        464
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$env.PYTHON_FRAUD_URL}}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "8ff0d333-7f09-46b5-b76b-a1c705b5cd8e",
+      "name": "Fraud Scoring API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -1968,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j=$json; const score=Number(j.risk_score??j.score??0); const level=score>=0.85?'CRITICAL':score>=0.65?'HIGH':score>=0.35?'MEDIUM':'LOW'; return [{json:{...j,risk_score:score,risk_level:level}}];"
+      },
+      "id": "10aee766-b930-4151-bc7c-d1cd3969342b",
+      "name": "Normalize Risk",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1744,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "fraud_alerts",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "account_id",
+              "fieldValue": "={{$json.account_id}}"
+            },
+            {
+              "fieldId": "transaction_id",
+              "fieldValue": "={{$json.transaction_id || null}}"
+            },
+            {
+              "fieldId": "risk_score",
+              "fieldValue": "={{$json.risk_score}}"
+            },
+            {
+              "fieldId": "risk_level",
+              "fieldValue": "={{$json.risk_level}}"
+            },
+            {
+              "fieldId": "trigger_reasons",
+              "fieldValue": "={{JSON.stringify($json.trigger_reasons || [])}}"
+            },
+            {
+              "fieldId": "pinecone_reference_ids",
+              "fieldValue": "={{JSON.stringify($json.pinecone_reference_ids || [])}}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "NEW"
+            }
+          ]
+        }
+      },
+      "id": "96368955-b0c4-4caa-b0d9-70063829163c",
+      "name": "Create Fraud Alert",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1520,
+        656
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.risk_level}}",
+              "rightValue": "HIGH",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "d4d4ced8-c38a-4eb6-9a4f-4444550fe41e",
+      "name": "High Risk?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1296,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "holds",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "account_id",
+              "fieldValue": "={{$json.account_id}}"
+            },
+            {
+              "fieldId": "fraud_alert_id",
+              "fieldValue": "={{$json.id}}"
+            },
+            {
+              "fieldId": "amount",
+              "fieldValue": "={{$json.amount || 0}}"
+            },
+            {
+              "fieldId": "reason",
+              "fieldValue": "Automated fraud risk hold - human review required"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "ACTIVE"
+            }
+          ]
+        }
+      },
+      "id": "07019075-1d28-4fbe-8885-7017a3d7a0bc",
+      "name": "Create Hold",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        656
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "approvals",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "action_type",
+              "fieldValue": "FRAUD_HOLD_RELEASE_OR_FALSE_POSITIVE"
+            },
+            {
+              "fieldId": "entity_type",
+              "fieldValue": "fraud_alert"
+            },
+            {
+              "fieldId": "entity_id",
+              "fieldValue": "={{$json.id}}"
+            },
+            {
+              "fieldId": "requested_by",
+              "fieldValue": "SYSTEM"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "PENDING"
+            },
+            {
+              "fieldId": "payload",
+              "fieldValue": "={{JSON.stringify($json)}}"
+            }
+          ]
+        }
+      },
+      "id": "486592ea-e368-4611-a5d0-bfe8e4959f2c",
+      "name": "Create Approval",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -848,
+        656
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$env.PINECONE_QUERY_URL}}",
+        "options": {}
+      },
+      "id": "767598c7-b655-4a32-b349-3a1186429740",
+      "name": "Pinecone Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -2192,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const q=$('Execute Workflow Trigger').first().json; const hits=$json.matches||[]; return [{json:{...q,rag_sources:hits.map(x=>x.id),rag_context:hits.map(x=>x.metadata?.text||x.metadata?.content||'').filter(Boolean).join('\\n\\n'),requires_approval:true}}];"
+      },
+      "id": "9af40f28-c921-44d2-910d-c484e41683f7",
+      "name": "Grounded Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1968,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "support_requests",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{$json.customer_id}}"
+            },
+            {
+              "fieldId": "subject",
+              "fieldValue": "={{$json.subject}}"
+            },
+            {
+              "fieldId": "message_body",
+              "fieldValue": "={{$json.body}}"
+            },
+            {
+              "fieldId": "rag_suggested_response",
+              "fieldValue": "={{$json.draft_response || 'Draft response must be generated by approved AI step using rag_context.'}}"
+            },
+            {
+              "fieldId": "rag_context_docs",
+              "fieldValue": "={{JSON.stringify($json.rag_sources || [])}}"
+            },
+            {
+              "fieldId": "requires_approval",
+              "fieldValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "d3552846-c3a9-4d4d-b388-215a4aee907f",
+      "name": "Create Support Request",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1744,
+        848
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "approvals",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "action_type",
+              "fieldValue": "RAG_GMAIL_SEND"
+            },
+            {
+              "fieldId": "entity_type",
+              "fieldValue": "support_request"
+            },
+            {
+              "fieldId": "entity_id",
+              "fieldValue": "={{$json.id}}"
+            },
+            {
+              "fieldId": "requested_by",
+              "fieldValue": "SYSTEM"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "PENDING"
+            },
+            {
+              "fieldId": "payload",
+              "fieldValue": "={{JSON.stringify($json)}}"
+            }
+          ]
+        }
+      },
+      "id": "6c414d60-145e-4078-90fa-2f51716406a8",
+      "name": "Create Approval1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1520,
+        848
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "approvals",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "PENDING"
+            }
+          ]
+        }
+      },
+      "id": "63ce74ad-81c3-463b-9e49-2437a1054570",
+      "name": "Find Pending Approvals",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -2176,
+        1216
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(x=>({json:{...x.json,approval_message:`Approval required for ${x.json.action_type}. Entity: ${x.json.entity_type}/${x.json.entity_id}`}}));"
+      },
+      "id": "c19f19d5-58bb-4f18-b85b-6ca1514e22bc",
+      "name": "Prepare Approval Notice",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1952,
+        1216
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$env.OPS_APPROVAL_EMAIL}}",
+        "subject": "={{'Banking approval required: '+$json.action_type}}",
+        "emailType": "text",
+        "message": "={{$json.approval_message}}",
+        "options": {}
+      },
+      "id": "2351e2e3-aec3-4387-9840-99f01d344e9c",
+      "name": "Send Approval Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1728,
+        1216
+      ],
+      "webhookId": "26f7f40d-d370-4415-97e0-37b2c3cd1538",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qMHvh8uISpKDqedd",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "id": "b0438100-17e7-4dc3-b381-ca51c8196018",
+      "name": "Schedule Trigger1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2400,
+        1216
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "disputes",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{$json.customer_id}}"
+            },
+            {
+              "fieldId": "transaction_id",
+              "fieldValue": "={{$json.transaction_id}}"
+            },
+            {
+              "fieldId": "reason",
+              "fieldValue": "={{$json.reason}}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "SUBMITTED"
+            }
+          ]
+        }
+      },
+      "id": "a17c06b5-058b-4d64-95c0-83efdab1226a",
+      "name": "Create Dispute",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -2416,
+        1040
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{...$json,protected_action:'REVERSAL_OR_CHARGEBACK',requires_approval:true}}];"
+      },
+      "id": "145f1908-766a-4566-9bcc-8e1d09fa90d7",
+      "name": "Protected Action Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2192,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "approvals",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "action_type",
+              "fieldValue": "REVERSAL_OR_CHARGEBACK"
+            },
+            {
+              "fieldId": "entity_type",
+              "fieldValue": "dispute"
+            },
+            {
+              "fieldId": "entity_id",
+              "fieldValue": "={{$json.id}}"
+            },
+            {
+              "fieldId": "requested_by",
+              "fieldValue": "SYSTEM"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "PENDING"
+            },
+            {
+              "fieldId": "payload",
+              "fieldValue": "={{JSON.stringify($json)}}"
+            }
+          ]
+        }
+      },
+      "id": "96b7d699-42c5-410c-89a9-6ba8818181c3",
+      "name": "Create Approval2",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1968,
+        1040
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "accounts",
+        "limit": 1000,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "ACTIVE"
+            }
+          ]
+        }
+      },
+      "id": "822f8260-8cac-4252-a78f-7729dfa18927",
+      "name": "Get Active Accounts",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1296,
+        848
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$env.PYTHON_INTEREST_URL}}",
+        "options": {}
+      },
+      "id": "9df5b58a-1b0d-4a04-8251-98bafafcdc39",
+      "name": "Python Interest API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "transactions",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "account_id",
+              "fieldValue": "={{$json.account_id}}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "INTEREST"
+            },
+            {
+              "fieldId": "amount",
+              "fieldValue": "={{$json.interest_amount}}"
+            },
+            {
+              "fieldId": "currency",
+              "fieldValue": "={{$json.currency || 'USD'}}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "POSTED"
+            },
+            {
+              "fieldId": "description",
+              "fieldValue": "Interest posting"
+            }
+          ]
+        }
+      },
+      "id": "e9a372b0-5130-44f1-80fb-3e5d07d4cdf9",
+      "name": "Create Interest Transaction",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -848,
+        848
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "accounts",
+        "limit": 1000
+      },
+      "id": "03f07645-298c-4e36-a5bb-075bcbd5161d",
+      "name": "Get Accounts",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1744,
+        1040
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "ledger_entries",
+        "limit": 5000
+      },
+      "id": "e40ada8a-c2f7-48f0-aa80-bf6e434c8aa8",
+      "name": "Get Ledger Entries",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1520,
+        1040
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const accounts=$('Get Accounts').all().map(x=>x.json); const entries=$('Get Ledger Entries').all().map(x=>x.json); const by={}; for(const e of entries){by[e.account_id]=(by[e.account_id]||0)+(e.entry_type==='CREDIT'?Number(e.amount):-Number(e.amount));} return accounts.map(a=>{const ledger=by[a.id]||0; return {json:{account_id:a.id,account_number:a.account_number,reported_balance:Number(a.balance),ledger_balance:ledger,difference:Number(a.balance)-ledger,reconciled:Math.abs(Number(a.balance)-ledger)<0.0001}}});"
+      },
+      "id": "c6d54e01-1417-45c4-a155-46fc52a45a5a",
+      "name": "Reconcile In Memory",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1296,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.reconciled}}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "isFalse"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4e00ff11-6760-41fa-8d2c-6f550c2fe438",
+      "name": "Mismatch?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1072,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "audit_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "actor_id",
+              "fieldValue": "SYSTEM"
+            },
+            {
+              "fieldId": "actor_type",
+              "fieldValue": "SYSTEM"
+            },
+            {
+              "fieldId": "action",
+              "fieldValue": "RECONCILIATION_MISMATCH"
+            },
+            {
+              "fieldId": "entity_type",
+              "fieldValue": "account"
+            },
+            {
+              "fieldId": "entity_id",
+              "fieldValue": "={{$json.account_id}}"
+            },
+            {
+              "fieldId": "payload_after",
+              "fieldValue": "={{JSON.stringify($json)}}"
+            }
+          ]
+        }
+      },
+      "id": "be0ef284-e400-4ffc-9025-7ad9e8efae4b",
+      "name": "Create Audit Alert",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -848,
+        1040
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "kpENokQGkOQ4gKMA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$env.OPS_ALERT_EMAIL}}",
+        "subject": "n8n Banking Workflow Error",
+        "emailType": "text",
+        "message": "={{$json.summary}}",
+        "options": {}
+      },
+      "id": "0080a694-52f6-4ec6-875e-ea0b308c448f",
+      "name": "Notify Ops1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -592,
+        496
+      ],
+      "webhookId": "00dab392-6efd-4677-8526-f8c239495969",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qMHvh8uISpKDqedd",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\n\n// Gmail can return headers in different locations/formats\nlet headers = [];\n\nif (Array.isArray(j.payload?.headers)) {\n  headers = j.payload.headers;\n} else if (Array.isArray(j.headers)) {\n  headers = j.headers;\n}\n\n// Safely get a Gmail header\nfunction getHeader(name) {\n  const header = headers.find(\n    h => String(h?.name || '').toLowerCase() === name.toLowerCase()\n  );\n\n  return header?.value || '';\n}\n\n// Get sender\nlet from =\n  getHeader('From') ||\n  j.from?.email ||\n  j.from?.address ||\n  j.sender?.email ||\n  '';\n\nfrom = String(from).trim();\n\n// Extract email from:\n// John Doe <john@example.com>\nconst emailMatch = from.match(/<([^>]+)>/);\n\nconst customerEmail = (\n  emailMatch ? emailMatch[1] : from\n).trim().toLowerCase();\n\n// Get message body from the different possible Gmail fields\nconst body =\n  j.textPlain ||\n  j.text ||\n  j.body?.text ||\n  j.snippet ||\n  '';\n\n// Get subject\nconst subject =\n  getHeader('Subject') ||\n  j.subject ||\n  '';\n\n// Return normalized data\nreturn [\n  {\n    json: {\n      message_id: j.id || null,\n      thread_id: j.threadId || null,\n      customer_email: customerEmail,\n      subject: String(subject).trim(),\n      body: String(body).trim(),\n      received_at: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "id": "dfaa1bf8-e1da-4aad-9f6e-a12154887e4b",
+      "name": "Normalize Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3312,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$env.OPS_ALERT_EMAIL}}",
+        "subject": "n8n Banking Workflow Error",
+        "emailType": "text",
+        "message": "={{$json.summary}}",
+        "options": {}
+      },
+      "id": "87cf39d6-93d8-44e9-bfe2-f6f088d3260e",
+      "name": "Notify Ops",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -592,
+        704
+      ],
+      "webhookId": "00dab392-6efd-4677-8526-f8c239495969",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qMHvh8uISpKDqedd",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$env.OPS_ALERT_EMAIL}}",
+        "subject": "n8n Banking Workflow Error",
+        "emailType": "text",
+        "message": "={{$json.summary}}",
+        "options": {}
+      },
+      "id": "d424b3b3-caf7-4573-8f44-05a7708c29fe",
+      "name": "Notify Ops2",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -592,
+        288
+      ],
+      "webhookId": "00dab392-6efd-4677-8526-f8c239495969",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qMHvh8uISpKDqedd",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$env.OPS_ALERT_EMAIL}}",
+        "subject": "n8n Banking Workflow Error",
+        "emailType": "text",
+        "message": "={{$json.summary}}",
+        "options": {}
+      },
+      "id": "a33680c0-e7d3-4ff2-a4ad-275d57c06c45",
+      "name": "Notify Ops3",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -592,
+        96
+      ],
+      "webhookId": "00dab392-6efd-4677-8526-f8c239495969",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qMHvh8uISpKDqedd",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$env.OPS_ALERT_EMAIL}}",
+        "subject": "n8n Banking Workflow Error",
+        "emailType": "text",
+        "message": "={{$json.summary}}",
+        "options": {}
+      },
+      "id": "8dc4bc6f-4ae8-447f-ba8f-e0f344fc7e96",
+      "name": "Notify Ops4",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -592,
+        896
+      ],
+      "webhookId": "00dab392-6efd-4677-8526-f8c239495969",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qMHvh8uISpKDqedd",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$env.OPS_ALERT_EMAIL}}",
+        "subject": "n8n Banking Workflow Error",
+        "emailType": "text",
+        "message": "={{$json.summary}}",
+        "options": {}
+      },
+      "id": "a3ab26fa-fd48-4d02-b1cd-fefc279c1e14",
+      "name": "Notify Ops5",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -592,
+        1088
+      ],
+      "webhookId": "00dab392-6efd-4677-8526-f8c239495969",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qMHvh8uISpKDqedd",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Gmail Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Gmail Message": {
+      "main": [
+        [
+          {
+            "node": "Normalize Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Customer": {
+      "main": [
+        [
+          {
+            "node": "Classify Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Intent": {
+      "main": [
+        [
+          {
+            "node": "Route Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Customer": {
+      "main": [
+        [
+          {
+            "node": "Get Account Holders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Account Holders": {
+      "main": [
+        [
+          {
+            "node": "Get Account",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Account": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Authority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Transfer Input": {
+      "main": [
+        [
+          {
+            "node": "Call Atomic Transfer RPC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Atomic Transfer RPC": {
+      "main": [
+        [
+          {
+            "node": "Create Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Due Standing Orders": {
+      "main": [
+        [
+          {
+            "node": "Loop Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Orders": {
+      "main": [
+        [
+          {
+            "node": "Prepare Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Execution": {
+      "main": [
+        [
+          {
+            "node": "Execute Transfer Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Transfer Workflow": {
+      "main": [
+        [
+          {
+            "node": "Record Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Intent": {
+      "main": [
+        [
+          {
+            "node": "Get Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validate Transfer Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find Due Standing Orders",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fraud Scoring API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Dispute",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Dispute",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pinecone Search",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pinecone Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fraud Scoring API": {
+      "main": [
+        [
+          {
+            "node": "Normalize Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Risk": {
+      "main": [
+        [
+          {
+            "node": "Create Fraud Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Fraud Alert": {
+      "main": [
+        [
+          {
+            "node": "High Risk?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "High Risk?": {
+      "main": [
+        [
+          {
+            "node": "Create Hold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Hold": {
+      "main": [
+        [
+          {
+            "node": "Create Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Search": {
+      "main": [
+        [
+          {
+            "node": "Grounded Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grounded Draft": {
+      "main": [
+        [
+          {
+            "node": "Create Support Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Support Request": {
+      "main": [
+        [
+          {
+            "node": "Create Approval1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Pending Approvals": {
+      "main": [
+        [
+          {
+            "node": "Prepare Approval Notice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Approval Notice": {
+      "main": [
+        [
+          {
+            "node": "Send Approval Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Find Pending Approvals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Dispute": {
+      "main": [
+        [
+          {
+            "node": "Protected Action Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Protected Action Check": {
+      "main": [
+        [
+          {
+            "node": "Create Approval2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Accounts": {
+      "main": [
+        [
+          {
+            "node": "Python Interest API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Python Interest API": {
+      "main": [
+        [
+          {
+            "node": "Create Interest Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Accounts": {
+      "main": [
+        [
+          {
+            "node": "Get Ledger Entries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Ledger Entries": {
+      "main": [
+        [
+          {
+            "node": "Reconcile In Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reconcile In Memory": {
+      "main": [
+        [
+          {
+            "node": "Mismatch?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mismatch?": {
+      "main": [
+        [
+          {
+            "node": "Create Audit Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Approval1": {
+      "main": [
+        [
+          {
+            "node": "Get Active Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Approval2": {
+      "main": [
+        [
+          {
+            "node": "Get Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Audit Alert": {
+      "main": [
+        [
+          {
+            "node": "Notify Ops5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Interest Transaction": {
+      "main": [
+        [
+          {
+            "node": "Notify Ops4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Approval": {
+      "main": [
+        [
+          {
+            "node": "Notify Ops",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Execution": {
+      "main": [
+        [
+          {
+            "node": "Notify Ops1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Notification": {
+      "main": [
+        [
+          {
+            "node": "Notify Ops2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Authority": {
+      "main": [
+        [
+          {
+            "node": "Notify Ops3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Email": {
+      "main": [
+        [
+          {
+            "node": "Find Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "69b38e83-f2f0-475f-88f1-17cfc66025e2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c1e1e00fdacb2405b9b2ba63a3e365728175cd197d95c294da6f9796dabcdb0e"
+  },
+  "nodeGroups": [],
+  "id": "Fzepf1Rdcv0o8KOY",
+  "tags": []
+}
